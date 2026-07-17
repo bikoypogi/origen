@@ -1,7 +1,7 @@
 module Origen
   MAJOR = 0
-  MINOR = 61
-  BUGFIX = 4
+  MINOR = 62
+  BUGFIX = 0
   DEV = nil
   VERSION = [MAJOR, MINOR, BUGFIX].join(".") + (DEV ? ".pre#{DEV}" : '')
 end

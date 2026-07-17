@@ -1,3 +1,29 @@
+<a class="anchor release_tag" name="v0_62_0"></a>
+<h1><a href="#v0_62_0">Tag: v0.62.0</a></h1>
+
+##### Branch: 'master'
+
+##### by Priyavadan Kumar on 17-Jul-2026 13:18PM
+
+
+# Release Note
+
+## Version-independent bugs
+
+Bugs can now be explicitly marked as unfixable:
+
+```ruby
+bug :my_bug, unfixable: true
+```
+
+An unfixable bug is considered present regardless of the IP version and can be queried with `has_bug?` even when the model does not provide a `version`:
+
+```ruby
+has_bug?(:my_bug)  # => true
+```
+
+Bugs not marked with `unfixable: true` continue to require a model version when queried.
+
 <a class="anchor release_tag" name="v0_61_4"></a>
 <h1><a href="#v0_61_4">Tag: v0.61.4</a></h1>
 
