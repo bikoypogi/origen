@@ -20,20 +20,22 @@ module Origen
       end
     end
 
-    # Returns true if the version of the IP represented by the object has the bug of the
-    # given name
+    # Returns true if the IP represented by the object has the bug of the given name.
+    # Bugs explicitly declared with unfixable: true can be queried without a version
+    # attribute.
     def has_bug?(name, _options = {})
+      name = name.to_s.downcase.to_sym
+      bug = bugs[name]
+
+      return true if bug && bug.unfixable?
+
       unless respond_to?(:version) && version
-        puts 'To test for the presence of a bug the object must implement an attribute'
+        puts 'To test for the presence of a versioned bug the object must implement an attribute'
         puts "called 'version' which returns the IP version represented by the the object."
         fail 'Version undefined!'
       end
-      name = name.to_s.downcase.to_sym
-      if bugs[name]
-        bugs[name].present_on_version?(version)
-      else
-        false
-      end
+
+      bug ? bug.present_on_version?(version) : false
     end
 
     # Returns a hash containing all known bugs associated with
