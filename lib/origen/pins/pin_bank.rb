@@ -61,30 +61,35 @@ module Origen
 
       # Returns a hash containing all pins available in the current context stored by their primary ID
       def pins(options = {})
+        options = options_with_current_package(options)
         all_pins.select do |_id, pin|
           pin.enabled?(options)
         end
       end
 
       def power_pins(options = {})
+        options = options_with_current_package(options)
         all_power_pins.select do |_id, pin|
           pin.enabled?(options)
         end
       end
 
       def ground_pins(options = {})
+        options = options_with_current_package(options)
         all_ground_pins.select do |_id, pin|
           pin.enabled?(options)
         end
       end
 
       def other_pins(options = {})
+        options = options_with_current_package(options)
         all_other_pins.select do |_id, pin|
           pin.enabled?(options)
         end
       end
 
       def virtual_pins(options = {})
+        options = options_with_current_package(options)
         all_virtual_pins.select do |_id, pin|
           pin.enabled?(options)
         end
@@ -365,6 +370,14 @@ module Origen
       # Returns the current configuration context for this pin/pin group, if a configuration has been
       # explicitly set on this pin that will be returned, otherwise the current chip-level configuration
       # context will be returned (nil if none is set)
+      def options_with_current_package(options)
+        if !options.key?(:package) && (package = current_package_id)
+          options.merge(package: package)
+        else
+          options
+        end
+      end
+
       def current_configuration
         if Origen.top_level
           Origen.top_level.current_configuration

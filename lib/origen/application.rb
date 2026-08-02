@@ -102,11 +102,10 @@ module Origen
     # A simple class to load all rake tasks available to an application, a class is used here
     # to avoid collision with the Rake namespace method
     class RakeLoader
-      require 'rake'
-      include Rake::DSL
-
       def load_tasks
         $VERBOSE = nil # Don't care about world writable dir warnings and the like
+        require 'rake'
+        extend Rake::DSL
         require 'colored'
 
         # Load all Origen tasks first

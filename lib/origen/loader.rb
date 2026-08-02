@@ -146,11 +146,11 @@ module Origen
         # load the inherit files, then the current app's block files
         app_paths_map.each do |app, full_paths|
           full_paths.each do |full_path|
-            paths = full_path.to_s.split('/')
+            paths = full_path.to_s.split('/').map(&:underscore)
             key = ''
             only = Array(options[:only]) if options[:only]
             except = Array(options[:except]) if options[:except]
-            path = paths.map(&:underscore).join('/')
+            path = paths.join('/')
             # If the path refers to a nested sub-block then don't load the full hierarchy since they
             # don't support inheritance or derivatives, modify the paths array so that only the sub-block
             # level will be loaded and nothing else.
@@ -166,7 +166,7 @@ module Origen
               unless (only && !only.include?(type)) || (except && except.include?(type))
                 with_parameters_transaction(type) do
                   paths.each_with_index do |path, i|
-                    key = i == 0 ? path.underscore : "#{key}/#{path.underscore}"
+                    key = i == 0 ? path : "#{key}/#{path}"
                     if app.blocks_files[key] && app.blocks_files[key][type]
                       app.blocks_files[key][type].each do |f|
                         if type == :attributes
@@ -187,7 +187,7 @@ module Origen
 
             # Now load the rest
             paths.each_with_index do |path, i|
-              key = i == 0 ? path.underscore : "#{key}/#{path.underscore}"
+              key = i == 0 ? path : "#{key}/#{path}"
               if app.blocks_files[key]
                 app.blocks_files[key].each do |type, files|
                   unless type == :_sub_block || load_first.include?(type) || (only && !only.include?(type)) || (except && except.include?(type))

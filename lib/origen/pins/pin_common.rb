@@ -127,9 +127,10 @@ module Origen
 
       # Returns the current top-level package ID, nil if none is set.
       def current_package_id
-        if Origen.top_level && Origen.top_level.current_package
-          Origen.top_level.current_package.id
-        end
+        top = owner if owner.respond_to?(:current_package)
+        top ||= Origen.top_level
+        package = top.current_package if top
+        package.id if package
       end
 
       # Returns the current top-level mode ID, nil if none is set.

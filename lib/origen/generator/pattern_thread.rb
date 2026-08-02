@@ -26,8 +26,7 @@ module Origen
         @block = block
         @pre_block = pre_block
         @primary = primary
-        @running = Concurrent::Event.new
-        @waiting = Concurrent::Event.new
+        @waiting = false
         @pending_cycles = nil
         @completed = false
         @reservations = {}
@@ -41,11 +40,13 @@ module Origen
 
       # @api private
       #
-      # This method is called once by the pattern sequence to start a new thread. It will block until
-      # the thread is in the waiting state.
+      # This method is called once by the pattern sequence to start a new cooperative
+      # execution context. Pattern sequences intentionally run only one context at a
+      # time to keep generated output deterministic, so an OS thread and two
+      # synchronization events only add context-switching overhead. A Fiber provides
+      # the same yield/resume behavior without involving the thread scheduler.
       def start
-        @thread = Thread.new do
-          PatSeq.send(:thread=, self)
+        @fiber = Fiber.new do
           wait
           @pre_block.call if @pre_block
           @block.call(sequence)
@@ -54,7 +55,7 @@ module Origen
           @completed = true
           wait
         end
-        @waiting.wait
+        resume
       end
 
       def record_cycle_count_stop
@@ -129,16 +130,22 @@ module Origen
           remainder = @pending_cycles - 1
           @pending_cycles = 1
         end
-        wait
-        @pending_cycles = remainder if remainder
-        # If the sequence did not do enough cycles in that round to satisfy this thread, then go back
-        # around to complete the remainder before continuing with the rest of the pattern
-        if @pending_cycles == 0
-          @pending_cycles = nil
-        elsif @pending_cycles > 0
-          @pending_cycles.cycles
-        else
-          fail "Something has gone wrong @pending_cycles is #{@pending_cycles}"
+        loop do
+          wait
+          if remainder
+            @pending_cycles = remainder
+            remainder = nil
+          end
+          # If another context requested fewer cycles, keep yielding the same
+          # request until the coordinator has consumed it. The previous recursive
+          # call to Integer#cycles retained one Ruby stack frame per partial
+          # advance and could overflow on long concurrent delays.
+          if @pending_cycles == 0
+            @pending_cycles = nil
+            break
+          elsif @pending_cycles < 0
+            fail "Something has gone wrong @pending_cycles is #{@pending_cycles}"
+          end
         end
       end
 
@@ -153,24 +160,33 @@ module Origen
 
       # Returns true if the thread is currently waiting for the pattern sequence to advance it
       def waiting?
-        @waiting.set?
+        @waiting
       end
 
-      # This should be called only by the pattern thread itself, and will block it until it is told to
-      # advance by the pattern sequence running in the main thread
+      # Yield to the pattern sequence until this context is advanced again.
       def wait
-        @running.reset
-        @waiting.set
-        @running.wait
+        @waiting = true
+        Fiber.yield
+        # Thread-local variables are fiber-local on Ruby 2.6, so restore the
+        # active context from inside the resumed fiber as well.
+        PatSeq.send(:thread=, self)
+        @waiting = false
       end
 
-      # This should be called only by the pattern sequence running in the main thread, it will un-block the
-      # pattern thread which is currently waiting, and it will block the main thread until the pattern thread
-      # reaches the next wait point (or completes)
-      def advance(completed_cycles = nil)
-        @waiting.reset
-        @running.set         # Release the pattern thread
-        @waiting.wait        # And wait for it to reach the next wait point
+      # Resume this context and return when it reaches its next cycle/wait point.
+      def advance(_completed_cycles = nil)
+        resume
+      end
+
+      private
+
+      def resume
+        PatSeq.send(:thread=, self)
+        @fiber.resume
+      ensure
+        # The sequence coordinator generates the combined vector between context
+        # advances; it must not look like one of the pattern contexts itself.
+        PatSeq.send(:thread=, nil)
       end
     end
   end

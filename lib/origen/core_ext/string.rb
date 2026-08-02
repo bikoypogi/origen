@@ -1,12 +1,13 @@
 require 'active_support/core_ext/string/inflections'
 require 'uri'
-begin
-  require 'scrub_rb'
-rescue LoadError
-  # Temporary patch as the scrub_rb gem is not installed to the central Ruby installation.
-  # This means that when running Origen outside of an application this functionality is not
-  # available (which is fine), within an application the gem will be loaded correctly by
-  # Bundler and the gem will require quite happily.
+# String#scrub is built into supported modern Rubies. Only load the compatibility
+# gem when running on an older Ruby that does not provide it natively.
+unless ''.respond_to?(:scrub)
+  begin
+    require 'scrub_rb'
+  rescue LoadError
+    # When running outside an application the compatibility gem may not be installed.
+  end
 end
 
 class String

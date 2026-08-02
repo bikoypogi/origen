@@ -1318,7 +1318,9 @@ module Origen
       # application-specific meta data properties
       def respond_to?(*args) # :nodoc:
         sym = args.first.to_sym
-        meta_data_method?(sym) || has_bits?(sym) || super(sym) || BitCollection.instance_methods.include?(sym)
+        # Concrete methods are by far the common case. Check Ruby's normal method
+        # table before building and merging the dynamic metadata hashes.
+        super(sym) || has_bits?(sym) || meta_data_method?(sym) || BitCollection.instance_methods.include?(sym)
       end
 
       # Copy overlays from one reg object to another
