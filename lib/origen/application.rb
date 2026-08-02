@@ -643,7 +643,12 @@ END
     # Returns the name of the given application, this is the name that will
     # be used to refer to the application when it is used as a plugin
     def name
-      (@name ||= namespace).to_s.underscore.symbolize
+      raw_name = (@name ||= namespace)
+      unless defined?(@normalized_name_source) && @normalized_name_source == raw_name
+        @normalized_name_source = raw_name
+        @normalized_name = raw_name.to_s.underscore.symbolize
+      end
+      @normalized_name
     end
 
     def gem_name
