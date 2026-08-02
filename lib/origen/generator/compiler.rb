@@ -4,6 +4,7 @@ module Origen
       require 'fileutils'
       require 'erb'
       require 'pathname'
+      require 'digest'
       require "#{Origen.top}/helpers/url"
 
       include Helpers
@@ -109,31 +110,53 @@ module Origen
         rescue
           Origen.log.info "Compiling... #{file}" unless options[:quiet]
         end
-        Origen.log.info "  Created... #{relative_path_to(output_file(file, options))}" unless options[:quiet]
+        destination = output_file(file, options)
+        Origen.log.info "  Created... #{relative_path_to(destination)}" unless options[:quiet]
         stats.completed_files += 1 if options[:collect_stats]
-        if is_erb?(file)
-          output = run_erb(file, options)
-          f = output_file(file, options).to_s
-          if output.is_a?(Pathname)
-            FileUtils.mv output.to_s, f
-          else
-            File.open(f, 'w') { |out| out.puts output }
+
+        with_output_file_lock(destination) do
+          replace_output_file(destination) do |temporary_file|
+            if is_erb?(file)
+              output = run_erb(file, options)
+              if output.is_a?(Pathname)
+                FileUtils.mv(output.to_s, temporary_file.to_s)
+              else
+                File.open(temporary_file, 'w') { |out| out.puts output }
+              end
+            else
+              FileUtils.cp(file.to_s, temporary_file.to_s)
+            end
           end
-        else # Just copy it across
-          out = output_file(file, options)
-          # Delete the target if it already exists, this prevents permission denied errors when copying
-          FileUtils.rm_f(out.to_s) if File.exist?(out.to_s)
-          FileUtils.cp(file.to_s, out.dirname.to_s)
-        end
-        if options[:zip]
-          `gzip -f -9 #{output_file(file, options)}`
-        else
-          if @check_for_changes
-            check_for_changes(output_file(file, options), reference_file(file, options),
+
+          if options[:zip]
+            `gzip -f -9 #{destination}`
+          elsif @check_for_changes
+            check_for_changes(destination, reference_file(file, options),
                               comment_char: Origen.app.tester ? Origen.app.tester.program_comment_char : nil,
                               compile_job: true, ignore_blank_lines: options[:ignore_blank_lines])
           end
         end
+      end
+
+      def with_output_file_lock(destination)
+        lock_dir = Pathname.new(Origen.root).join('tmp', 'origen_output_locks')
+        FileUtils.mkdir_p(lock_dir.to_s)
+        lock_name = Digest::SHA256.hexdigest(destination.expand_path.to_s)
+        File.open(lock_dir.join("#{lock_name}.lock"), 'w') do |lock|
+          lock.flock(File::LOCK_EX)
+          yield
+        ensure
+          lock.flock(File::LOCK_UN)
+        end
+      end
+
+      def replace_output_file(destination)
+        temporary_file = destination.dirname.join(".#{destination.basename}.#{$$}.#{Thread.current.object_id}.tmp")
+        FileUtils.rm_f(temporary_file.to_s)
+        yield temporary_file
+        File.rename(temporary_file.to_s, destination.to_s)
+      ensure
+        FileUtils.rm_f(temporary_file.to_s) if temporary_file
       end
 
       def run_erb(file, opts = {}, &block)
