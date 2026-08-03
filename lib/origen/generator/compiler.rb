@@ -151,7 +151,7 @@ module Origen
       end
 
       def replace_output_file(destination)
-        temporary_file = destination.dirname.join(".#{destination.basename}.#{$$}.#{Thread.current.object_id}.tmp")
+        temporary_file = destination.dirname.join(".#{destination.basename}.#{Process.pid}.#{Thread.current.object_id}.tmp")
         FileUtils.rm_f(temporary_file.to_s)
         yield temporary_file
         File.rename(temporary_file.to_s, destination.to_s)
