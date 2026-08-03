@@ -47,7 +47,7 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency "thor", "~>1"
   spec.add_runtime_dependency "nanoc", "~> 3.7.0"
   spec.add_runtime_dependency "kramdown", "~>2.4"
-  spec.add_runtime_dependency "rubocop", ">= 1.28", "< 2"
+  spec.add_runtime_dependency "rubocop", ">= 1.50", "< 2"
   spec.add_runtime_dependency "coderay", "~>1.1"
   spec.add_runtime_dependency "rake", ">= 10", "< 14" # rake 10's CLI uses Object#=~ (removed in Ruby 3.2); allow 13.x which runs on Ruby 2.6-4.0
   spec.add_runtime_dependency "pry", "~>0.10"
