@@ -1,3 +1,29 @@
+<a class="anchor release_tag" name="v0_63_0"></a>
+<h1><a href="#v0_63_0">Tag: v0.63.0</a></h1>
+
+##### Branch: 'master'
+
+##### by Priyavadan Kumar on 06-Aug-2026 09:18AM
+
+
+# Release Note
+
+## Faster and safer generation
+
+PR #465 improves Origen's runtime performance while preserving generated output and existing behavior.
+
+* Pattern sequences now use cooperative `Fiber` contexts instead of OS threads and synchronization events. Cycle coordination is iterative, reducing scheduler overhead and avoiding stack growth during long concurrent delays.
+* Stable application and workspace metadata is cached, and repeated work in register, pin, loader, string, undefined-value, and diff hot paths has been reduced.
+* Pry and Rake are loaded only when needed, and the legacy `scrub_rb` compatibility gem is skipped when Ruby provides `String#scrub` natively.
+* Compiler outputs are written to temporary files and atomically renamed while holding an interprocess lock for the canonical destination. Output comparison occurs under the same lock, preventing parallel workers from reading or comparing partially written shared files.
+* Diff comment and suspend/resume expressions are compiled once and reused. New regression coverage verifies content changes, blank-line and comment filtering, and runtime comment-character updates.
+* Pin filtering now resolves the active package once per collection and correctly honors package context supplied by the pin owner.
+* The program command exposes `--skip-referenced-pattern-write` to application runners that do not need referenced-pattern list output.
+
+The minimum supported RuboCop 1.x version is now 1.50 so the dependency matches Origen's strict lint configuration.
+
+GitHub Actions validated Origen's lint and 1,043-example regression suite on Ruby 2.6, 2.7, 3.0.4, 3.1, 3.3.1, 3.4.2, and 4.0.0 across Ubuntu and Windows, with website compilation also verified on Ubuntu. Full product generation was additionally validated on the production Ruby 2.6 stack with no optimization-only generated-output differences.
+
 <a class="anchor release_tag" name="v0_62_0"></a>
 <h1><a href="#v0_62_0">Tag: v0.62.0</a></h1>
 
