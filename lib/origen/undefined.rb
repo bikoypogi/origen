@@ -1,3 +1,5 @@
+require 'singleton'
+
 module Origen
   class UndefinedClass
     include Singleton

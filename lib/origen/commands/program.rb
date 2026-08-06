@@ -18,6 +18,7 @@ opt_parser = OptionParser.new do |opts|
   opts.on('-o', '--output DIR', String, 'Override the default output directory') { |o| options[:output] = o }
   opts.on('-r', '--reference DIR', String, 'Override the default reference directory') { |o| options[:reference] = o }
   opts.on('--list FILE', String, 'Override the default pattern list file name') { |o| options[:referenced_pattern_list] = o }
+  opts.on('--skip-referenced-pattern-write', 'Do not write or compare the referenced pattern list') { options[:skip_referenced_pattern_write] = true }
   opts.on('--doc', 'Generate into doc (yaml) format, requires a Doc interface to be setup in your application') { options[:doc] = true }
   opts.on('-q', '--queue NAME', String, 'Specify the LSF queue, default is short') { |o| options[:queue] = o }
   opts.on('-p', '--project NAME', String, 'Specify the LSF project, default is msg.te') { |o| options[:project] = o }

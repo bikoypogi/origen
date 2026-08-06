@@ -21,7 +21,7 @@ module Origen
       # Set this attribute to the comment char used by the given file and comments will
       # be ignored by the diff.
       # An array of strings can be passed in to mask multiple comment identifiers.
-      attr_accessor :comment_char
+      attr_reader :comment_char
 
       # Create a new diff, attributes can be initialized via the options, or can be
       # set later.
@@ -29,11 +29,22 @@ module Origen
         @file_a = options[:file_a]
         @file_b = options[:file_b]
         @ignore_blank_lines = options[:ignore_blank_lines]
-        @comment_char = options[:comment_char]
+        self.comment_char = options[:comment_char]
         @suspend_string = options[:suspend_string] # permits suspending diff check based on a string
         @resume_string  = options[:resume_string]  # permits resuming diff check based on a string
+        @suspend_regex = Regexp.new(@suspend_string.to_s) if @suspend_string
+        @resume_regex = Regexp.new(@resume_string.to_s) if @resume_string
         @suspend_diff = false
         @resume_diff = false
+      end
+
+      def comment_char=(value)
+        @comment_char = value
+        chars = Array(value)
+        # These expressions are used for every line in both files. Compiling them
+        # once avoids allocating multiple arrays and regexps per compared line.
+        @comment_line_regexes = chars.map { |char| /^\s*#{char}.*/ }
+        @inline_comment_regexes = chars.map { |char| /(.*)\s*#{char}.*/ }
       end
 
       # Returns true if there are differences between the two files based on the
@@ -71,14 +82,10 @@ module Origen
 
       def set_suspend_diff(line)
         if line.valid_encoding?
-          if @suspend_string && !@suspend_diff
-            if line =~ /#{@suspend_string}/
-              @suspend_diff = true
-            end
-          elsif @resume_string && @suspend_diff
-            if line =~ /#{@resume_string}/
-              @resume_diff = true
-            end
+          if @suspend_regex && !@suspend_diff
+            @suspend_diff = true if @suspend_regex.match(line)
+          elsif @resume_regex && @suspend_diff
+            @resume_diff = true if @resume_regex.match(line)
           end
         end
       end
@@ -101,13 +108,10 @@ module Origen
           if @comment_char
             # Screen off any inline comments at the end of line
             begin
-              [@comment_char].flatten.each do |comchar|
-                unless line =~ /^\s*#{comchar}/
-                  if line =~ /(.*)\s*#{comchar}.*/
-                    return Regexp.last_match[1].strip
-                  else
-                    return line.strip
-                  end
+              @comment_line_regexes.each_with_index do |line_regex, i|
+                unless line_regex.match?(line)
+                  match = @inline_comment_regexes[i].match(line)
+                  return match ? match[1].strip : line.strip
                 end
               end
             # This rescue is a crude way to guard against non-ASCII files that find
@@ -127,14 +131,9 @@ module Origen
         matched = false
         while !matched && ix < array.size
           begin
-            comment_matched = false
             # Skip comment lines
-            if @comment_char
-              [@comment_char].flatten.each do |char|
-                if array[ix] =~ /^\s*#{char}.*/
-                  comment_matched = true
-                end
-              end
+            comment_matched = @comment_char && @comment_line_regexes.any? do |regex|
+              regex.match(array[ix])
             end
             # Skip blank lines
             if comment_matched

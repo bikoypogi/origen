@@ -60,7 +60,8 @@ unless defined? RGen::ORIGENTRANSITION
 
   require 'English'
   require 'pathname'
-  require 'pry'
+  # Pry is only needed by the interactive command, which loads it on demand.
+  # Avoiding it here saves every non-interactive Origen process from loading Pry.
   # require these here to make required files consistent between global commands invoke globally and global commands
   # invoked from an application workspace
   require 'colored'
