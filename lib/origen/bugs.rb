@@ -25,17 +25,21 @@ module Origen
     # attribute.
     def has_bug?(name, _options = {})
       name = name.to_s.downcase.to_sym
-      bug = bugs[name]
 
-      return true if bug && bug.unfixable?
+      if bug = bugs[name]
+        return true if bug.unfixable?
 
-      unless respond_to?(:version) && version
-        puts 'To test for the presence of a versioned bug the object must implement an attribute'
-        puts "called 'version' which returns the IP version represented by the the object."
-        fail 'Version undefined!'
+        # Note - jinyakok: Only check for version if a bug actually exists.
+        unless respond_to?(:version) && version
+          puts 'To test for the presence of a versioned bug the object must implement an attribute'
+          puts "called 'version' which returns the IP version represented by the the object."
+          fail 'Version undefined!'
+        end
+  
+        bug.present_on_version?(version)
+      else
+        false
       end
-
-      bug ? bug.present_on_version?(version) : false
     end
 
     # Returns a hash containing all known bugs associated with
