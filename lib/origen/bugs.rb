@@ -35,7 +35,7 @@ module Origen
           puts "called 'version' which returns the IP version represented by the the object."
           fail 'Version undefined!'
         end
-  
+
         bug.present_on_version?(version)
       else
         false
