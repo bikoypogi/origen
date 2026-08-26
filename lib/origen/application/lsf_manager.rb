@@ -708,10 +708,11 @@ module Origen
           parts = line.split
           next if parts.size < 6
           next if parts[0] =~ /\A(JOBID|Job)/i  # skip header and error lines
+
           hosts[parts[0]] = parts[5].split('.').first
         end
         hosts
-      rescue StandardError => e
+      rescue => e
         Origen.log.debug "LSFManager#lsf_exec_hosts: bjobs query failed — #{e.message}"
         {}
       end
