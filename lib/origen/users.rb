@@ -1,8 +1,8 @@
 module Origen
   # Methods related to individual users and groups
   module Users
-    autoload :User,   'origen/users/user'
-    autoload :LDAP,   'origen/users/ldap'
+    autoload :User, 'origen/users/user'
+    autoload :LDAP, 'origen/users/ldap'
 
     def app_users
       # Had to do some shenanigans here due to Origen.root not being available

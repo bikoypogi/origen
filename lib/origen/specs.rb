@@ -741,8 +741,8 @@ module Origen
       attrs_to_be_shown = {
         name:        SpecTableAttr.new('Name', true, 'Name'.length + whitespace_padding),
         symbol:      SpecTableAttr.new('Symbol', false, 'Symbol'.length + whitespace_padding),
-        mode:        SpecTableAttr.new('Mode',      true,  'Mode'.length + whitespace_padding),
-        type:        SpecTableAttr.new('Type',      true,  'Type'.length + whitespace_padding),
+        mode:        SpecTableAttr.new('Mode', true, 'Mode'.length + whitespace_padding),
+        type:        SpecTableAttr.new('Type', true, 'Type'.length + whitespace_padding),
         sub_type:    SpecTableAttr.new('Sub-Type', false, 'Sub-Type'.length + whitespace_padding),
         # spec SpecTableAttribute :description is called parameter in the spec table output to match historical docs
         description: SpecTableAttr.new('Parameter', false, 'Parameter'.length + whitespace_padding),

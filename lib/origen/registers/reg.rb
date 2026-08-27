@@ -1008,9 +1008,9 @@ module Origen
           bit_options = options.dup
           bit_options[:data] = options[:data][n]
           if options[:res].is_a?(Symbol)
-            bit_options[:res]  = options[:res]
+            bit_options[:res] = options[:res]
           else
-            bit_options[:res]  = options[:res][n]
+            bit_options[:res] = options[:res][n]
           end
           @bits.delete_at(position + n)
           @bits.insert(position + n, Bit.new(self, position + n, bit_options))
@@ -1040,7 +1040,7 @@ module Origen
           size.times do |n|
             bit_options = options.dup
             bit_options[:data] = options[:data][n]
-            bit_options[:res]  = options[:res][n]
+            bit_options[:res] = options[:res][n]
             @bits.delete_at(position + n)
             @bits.insert(position + n, Bit.new(self, position + n, bit_options))
           end

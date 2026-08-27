@@ -175,11 +175,11 @@ module Origen
               type = source_output[pointer].type
               case type
               when :added
-                added(pointer,    size = get_block_size(pointer, :added))
+                added(pointer, size = get_block_size(pointer, :added))
               when :deleted
-                deleted(pointer,  size = get_block_size(pointer, :deleted))
+                deleted(pointer, size = get_block_size(pointer, :deleted))
               when :changed
-                changed(pointer,  size = get_block_size(pointer, :changed))
+                changed(pointer, size = get_block_size(pointer, :changed))
               end
               file.puts unless type == :unchanged
               pointer += size
