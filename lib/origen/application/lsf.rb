@@ -42,6 +42,21 @@ module Origen
         # If set to true, then only jobs of the specified queue will be counted, effectively making
         # the max_jobs value a max_jobs per queue
         attr_accessor :queue_count_only
+        # Number of running jobs below which LSFManager#print_status emits a
+        # per-job detail table (LSF ID, execution host, elapsed time) so that
+        # operators can easily see which jobs are still running at the tail end
+        # of a large build without having to run bjobs manually.
+        #
+        # * Default: 0   — feature is OFF by default. Applications must opt in
+        #                   by setting a positive value in config/application.rb.
+        # * Set to N     — show details when fewer than N jobs remain and
+        #                   nothing is still queuing.
+        # * Overridable  — can also be set via ENV['ORIGEN_LSF_DETAIL_THRESHOLD']
+        #                  at runtime (takes precedence over this config value).
+        #
+        # Example (config/application.rb):
+        #   config.lsf.detail_threshold = 10
+        attr_accessor :detail_threshold
 
         def initialize
           @group = Origen.site_config.lsf_group
@@ -52,6 +67,7 @@ module Origen
           @cores = Origen.site_config.lsf_cores
           @max_jobs = Origen.site_config.lsf_max_jobs || 400
           @queue_count_only = Origen.site_config.lsf_queue_count_only || false
+          @detail_threshold = 0
         end
       end
 

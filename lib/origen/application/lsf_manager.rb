@@ -84,6 +84,22 @@ module Origen
         end
       end
 
+      # Prints the current LSF job counts and, when the build is nearly
+      # finished, a per-job detail table showing LSF ID, execution host, and
+      # elapsed time so operators can see which jobs are holding things up
+      # without leaving the terminal to run bjobs manually.
+      #
+      # The detail table fires when:
+      #   running_jobs.size > 0  AND
+      #   running_jobs.size < lsf.config.detail_threshold  AND
+      #   queuing_jobs.size == 0
+      #
+      # Downstream apps configure the threshold in config/application.rb:
+      #   config.lsf.detail_threshold = 5   # show when < 5 jobs remain
+      #   config.lsf.detail_threshold = 0   # disable entirely
+      #
+      # The ENV variable ORIGEN_LSF_DETAIL_THRESHOLD overrides the config
+      # value at runtime if set.
       def print_status(options = {})
         options = {
           print_insructions: true
@@ -131,6 +147,39 @@ module Origen
           Origen.log.info ''
           Origen.log.info 'Reset the LSF manager (clear all jobs): origen lsf -c -t all'
           Origen.log.info ''
+        end
+        # ── End-of-run detail table ──────────────────────────────────────────
+        # ENV var takes precedence over config; config.detail_threshold is set
+        # by each downstream app (default 0 = disabled; set a positive value to enable).
+        threshold = (ENV['ORIGEN_LSF_DETAIL_THRESHOLD'] || lsf.config.detail_threshold).to_i
+        if threshold > 0 &&
+           running_jobs.size > 0 &&
+           running_jobs.size < threshold &&
+           queuing_jobs.size == 0
+
+          valid_jobs = running_jobs.reject { |j| j[:lsf_id].nil? || j[:lsf_id] == :error }
+          unless valid_jobs.empty?
+            lsf_ids = valid_jobs.map { |j| j[:lsf_id].to_s }
+            hosts   = lsf_exec_hosts(lsf_ids)
+
+            Origen.log.info ''
+            Origen.log.info "LSF Running Job Details (#{valid_jobs.size} job(s) < threshold #{threshold}):"
+            Origen.log.info '-' * 66
+            Origen.log.info ''
+            Origen.log.info "  #{'LSF ID'.ljust(12)} #{'EXEC_HOST'.ljust(22)} Duration"
+            Origen.log.info "  #{'-' * 12} #{'-' * 22} #{'-' * 18}"
+
+            valid_jobs.each do |job|
+              id      = job[:lsf_id].to_s
+              host    = hosts[id] || '-'
+              elapsed = job[:submitted_at] ? time_ago(job[:submitted_at]) : '(unknown)'
+              cmd     = "#{job[:command]}#{job[:switches]}".gsub(' --exec_remote', '').strip
+              Origen.log.info "  #{id.ljust(12)} #{host.ljust(22)} #{elapsed}"
+              Origen.log.info "    => #{cmd}"
+            end
+
+            Origen.log.info ''
+          end
         end
       end
 
@@ -643,6 +692,32 @@ module Origen
           Marshal.dump(@remote_jobs, f)
         end
       end
+
+      private
+
+      # Queries bjobs for the given LSF job IDs and returns a Hash of
+      # { id_string => exec_host_shortname }.  Returns {} gracefully when
+      # bjobs is not in PATH or exits non-zero.
+      #
+      # Standard plain-text bjobs column layout (no -json flag):
+      #   JOBID  USER  STAT  QUEUE  FROM_HOST  EXEC_HOST  JOB_NAME  SUBMIT_TIME
+      #   [0]    [1]   [2]   [3]    [4]        [5]
+      def lsf_exec_hosts(lsf_ids)
+        hosts = {}
+        `bjobs #{lsf_ids.join(' ')} 2>&1`.each_line do |line|
+          parts = line.split
+          next if parts.size < 6
+          next if parts[0] =~ /\A(JOBID|Job)/i  # skip header and error lines
+
+          hosts[parts[0]] = parts[5].split('.').first
+        end
+        hosts
+      rescue => e
+        Origen.log.debug "LSFManager#lsf_exec_hosts: bjobs query failed — #{e.message}"
+        {}
+      end
+
+      public
 
       def execute_remotely(options = {})
         job_started(options[:id])
